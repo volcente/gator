@@ -2,29 +2,23 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/volcente/gator/internal/config"
 )
 
 func main() {
-	cfg, err := config.GetConfig()
+	c, err := config.Read()
 	if err != nil {
-		fmt.Printf("Error! %v\n", err)
-		return
+		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("%v\n", cfg)
+	fmt.Printf("Read config: %+v\n", c)
 
-	err = cfg.SetUser("bartosz")
+	err = c.SetUser("bartosz")
+
+	c, err = config.Read()
 	if err != nil {
-		fmt.Printf("Error! %v\n", err)
-		return
+		log.Fatalf("error reading config: %v", err)
 	}
-
-	cfg, err = config.GetConfig()
-	if err != nil {
-		fmt.Printf("Error! %v\n", err)
-		return
-	}
-	fmt.Printf("%v\n", cfg)
-
+	fmt.Printf("Read config again: %+v\n", c)
 }
