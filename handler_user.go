@@ -56,3 +56,16 @@ func handlerRegister(s *state, cmd command) error {
 	fmt.Println(user)
 	return nil
 }
+
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.Args) != 0 {
+		return fmt.Errorf("usage: %s", cmd.Name)
+	}
+
+	err := s.db.DeleteAll(context.Background())
+	if err != nil {
+		return fmt.Errorf("could not reset users table: %w", err)
+	}
+	fmt.Printf("users table has been reset!")
+	return nil
+}
