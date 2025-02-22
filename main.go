@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
+	_ "github.com/lib/pq"
 	"github.com/volcente/gator/internal/config"
+	"github.com/volcente/gator/internal/database"
 )
 
 type state struct {
+	db     *database.Queries
 	config *config.Config
 }
 
@@ -17,12 +21,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	programState := state{config: &cfg}
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	dbQueries := database.New(db)
+
+	programState := state{
+		db:     dbQueries,
+		config: &cfg,
+	}
 
 	cmds := commands{
 		commandList: make(map[string]func(*state, command) error),
 	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
 
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: cli <command> [args...]")
