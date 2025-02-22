@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"time"
 )
 
 type RSSFeed struct {
@@ -27,14 +28,16 @@ type RSSItem struct {
 const feedURL = "https://www.wagslane.dev/index.xml"
 
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
-	client := http.Client{}
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
 
 	feedRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct request: %w", err)
 	}
-	feedRequest.Header.Set("User-Agent", "gator")
 
+	feedRequest.Header.Set("User-Agent", "gator")
 	res, err := client.Do(feedRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make request: %w", err)
@@ -53,8 +56,10 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 func decodeUnescapedHTML(rawFeed *RSSFeed) {
 	rawFeed.Channel.Title = html.UnescapeString(rawFeed.Channel.Title)
 	rawFeed.Channel.Description = html.UnescapeString(rawFeed.Channel.Description)
-	for _, item := range rawFeed.Channel.Item {
+	// REMEMBER range loop creates a copy for each iterated item, modifying item doesn't change the source object! always commit changes via obj.item[idx] = modifiedItem
+	for idx, item := range rawFeed.Channel.Item {
 		item.Title = html.UnescapeString(item.Title)
 		item.Description = html.UnescapeString(item.Description)
+		rawFeed.Channel.Item[idx] = item
 	}
 }
