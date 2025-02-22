@@ -57,7 +57,7 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
-func handleReset(s *state, cmd command) error {
+func handlerReset(s *state, cmd command) error {
 	if len(cmd.Args) != 0 {
 		return fmt.Errorf("usage: %s", cmd.Name)
 	}
@@ -66,7 +66,6 @@ func handleReset(s *state, cmd command) error {
 	if err != nil {
 		return fmt.Errorf("could not reset users table: %w", err)
 	}
-
 	fmt.Printf("users table has been reset!")
 	return nil
 }
