@@ -23,14 +23,9 @@ func handlerAggregate(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s feed_name feed_url", cmd.Name)
-	}
-
-	user, err := s.db.GetUser(context.Background(), s.config.CurrentUsername)
-	if err != nil {
-		return fmt.Errorf("could not get the current user from databse: %w", err)
 	}
 
 	feedName, feedURL := cmd.Args[0], cmd.Args[1]
@@ -82,16 +77,12 @@ func handlerShowFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowFeed(s *state, cmd command) error {
+func handlerFollowFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <feed_url>", cmd.Name)
 	}
-	feedUrl := cmd.Args[0]
 
-	user, err := s.db.GetUser(context.Background(), s.config.CurrentUsername)
-	if err != nil {
-		return fmt.Errorf("could not retrieve current user data: %w", err)
-	}
+	feedUrl := cmd.Args[0]
 	feed, err := s.db.GetFeedByUrl(context.Background(), feedUrl)
 	if err != nil {
 		return fmt.Errorf("could not retrieve feed based on passed url: %w", err)
@@ -116,12 +107,12 @@ func handlerFollowFeed(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
+func handlerFollowing(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) != 0 {
 		return fmt.Errorf("usage: %s", cmd.Name)
 	}
 
-	followedFeeds, err := s.db.GetFeedFollowsForUser(context.Background(), s.config.CurrentUsername)
+	followedFeeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("could not get followed feeds for current user: %w", err)
 	}
