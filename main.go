@@ -39,6 +39,7 @@ func main() {
 	cmds.register("agg", handlerAggregate)
 	cmds.register("feeds", handlerShowFeeds)
 	cmds.register("addfeed", middlewareLoggedIn(handlerAddFeed))
+	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 	cmds.register("follow", middlewareLoggedIn(handlerFollowFeed))
 	cmds.register("following", middlewareLoggedIn(handlerFollowing))
 
