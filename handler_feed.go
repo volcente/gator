@@ -10,17 +10,23 @@ import (
 )
 
 func handlerAggregate(s *state, cmd command) error {
-	if len(cmd.Args) != 0 {
-		return fmt.Errorf("usage: %s", cmd.Name)
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <time_between_requests>", cmd.Name)
 	}
 
-	feed, err := fetchFeed(context.Background(), feedURL)
+	time_between_reqs, err := time.ParseDuration(cmd.Args[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("%s is not a valid time! %w", cmd.Args[0], err)
 	}
 
-	fmt.Printf("%+v\n", feed)
-	return nil
+	fmt.Printf("Collecting feeds every %s...\n", time_between_reqs)
+
+	ticker := time.NewTicker(time_between_reqs)
+	for ; ; <-ticker.C {
+		fmt.Println("***")
+		scrapeFeeds(s)
+		fmt.Println("***")
+	}
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User) error {
@@ -149,4 +155,36 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 
 	fmt.Printf("%s unfollowed successfully!\n", feed.Name)
 	return nil
+}
+
+func scrapeFeeds(s *state) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return fmt.Errorf("could not get next feed to fetch: %w", err)
+	}
+
+	err = s.db.MarkFeedFetched(context.Background(), nextFeed.ID)
+	if err != nil {
+		return fmt.Errorf("could not mark feed as fetched: %w", err)
+	}
+
+	updatedFeed, err := fetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return fmt.Errorf("could not get latest feed: %w", err)
+	}
+
+	printFeed(updatedFeed)
+	return nil
+}
+
+func printFeed(feed *RSSFeed) {
+	for _, item := range feed.Channel.Item {
+		fmt.Println("--------------------------")
+		fmt.Printf("* Title:              %s\n", item.Title)
+		fmt.Printf("* Description:        %s\n", item.Description)
+		fmt.Printf("* Link:               %s\n", item.Link)
+		fmt.Printf("* Published Date:     %s\n", item.PubDate)
+		fmt.Println("--------------------------")
+		fmt.Println()
+	}
 }
