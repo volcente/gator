@@ -25,8 +25,6 @@ type RSSItem struct {
 	PubDate     string `xml:"pubDate"`
 }
 
-const feedURL = "https://www.wagslane.dev/index.xml"
-
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	client := http.Client{
 		Timeout: 10 * time.Second,
@@ -34,19 +32,19 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 
 	feedRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to construct request: %w", err)
+		return nil, fmt.Errorf("failed to construct request: %w", err)
 	}
 
 	feedRequest.Header.Set("User-Agent", "gator")
 	res, err := client.Do(feedRequest)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to make request: %w", err)
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer res.Body.Close()
 
 	rssFeed := RSSFeed{}
 	if err = xml.NewDecoder(res.Body).Decode(&rssFeed); err != nil {
-		return nil, fmt.Errorf("Failed to parse response: %w", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	decodeUnescapedHTML(&rssFeed)

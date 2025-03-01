@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,18 +16,19 @@ func handlerAggregate(s *state, cmd command) error {
 		return fmt.Errorf("usage: %s <time_between_requests>", cmd.Name)
 	}
 
-	time_between_reqs, err := time.ParseDuration(cmd.Args[0])
+	timeBetweenReqs, err := time.ParseDuration(cmd.Args[0])
 	if err != nil {
 		return fmt.Errorf("%s is not a valid time! %w", cmd.Args[0], err)
 	}
 
-	fmt.Printf("Collecting feeds every %s...\n", time_between_reqs)
+	fmt.Printf("Collecting feeds every %s...\n", timeBetweenReqs)
 
-	ticker := time.NewTicker(time_between_reqs)
+	ticker := time.NewTicker(timeBetweenReqs)
 	for ; ; <-ticker.C {
-		fmt.Println("***")
-		scrapeFeeds(s)
-		fmt.Println("***")
+		err = scrapeFeeds(s)
+		if err != nil {
+			return err
+		}
 	}
 }
 
@@ -173,18 +176,37 @@ func scrapeFeeds(s *state) error {
 		return fmt.Errorf("could not get latest feed: %w", err)
 	}
 
-	printFeed(updatedFeed)
+	for _, item := range updatedFeed.Channel.Item {
+		publishedAt, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			return fmt.Errorf("could not parse published date: %w", err)
+		}
+
+		err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: item.Description,
+			FeedID:      nextFeed.ID,
+			PublishedAt: publishedAt,
+		})
+		if err != nil {
+			if isDuplicatedKeyError(err) {
+				continue
+			}
+			return fmt.Errorf("could not create post: %w", err)
+		}
+		fmt.Println("post has been successfully saved to the database")
+	}
 	return nil
 }
 
-func printFeed(feed *RSSFeed) {
-	for _, item := range feed.Channel.Item {
-		fmt.Println("--------------------------")
-		fmt.Printf("* Title:              %s\n", item.Title)
-		fmt.Printf("* Description:        %s\n", item.Description)
-		fmt.Printf("* Link:               %s\n", item.Link)
-		fmt.Printf("* Published Date:     %s\n", item.PubDate)
-		fmt.Println("--------------------------")
-		fmt.Println()
+func isDuplicatedKeyError(err error) bool {
+	var pqError *pq.Error
+	if isPqError := errors.As(err, &pqError); isPqError {
+		return pqError.Code == "23505"
 	}
+	return false
 }
