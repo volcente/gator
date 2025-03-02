@@ -47,14 +47,23 @@ const getPostsForUser = `-- name: GetPostsForUser :many
 SELECT p.title, p.published_at, p.description, p.url, p.feed_id
 FROM posts AS p
 INNER JOIN feeds as f ON p.feed_id = f.id
-ORDER BY p.published_at DESC
+ORDER BY
+  CASE WHEN $3::varchar = 'title' AND $4::varchar = 'asc' THEN p.title END ASC,
+  CASE WHEN $3= 'title' AND $4 = 'desc' THEN p.title END DESC,
+  CASE WHEN $3 = 'url' AND $4 = 'asc' THEN p.url END ASC,
+  CASE WHEN $3 = 'url' AND $4 = 'desc' THEN p.url END DESC,
+  CASE WHEN $3 = 'published_at' AND $4 = 'asc' THEN p.published_at END ASC,
+  CASE WHEN $3 = 'published_at' AND $4 = 'desc' THEN p.published_at END DESC,
+  p.published_at DESC
 LIMIT $1
 OFFSET $2
 `
 
 type GetPostsForUserParams struct {
-	Limit  int32
-	Offset int32
+	Limit     int32
+	Offset    int32
+	SortBy    string
+	SortOrder string
 }
 
 type GetPostsForUserRow struct {
@@ -66,7 +75,12 @@ type GetPostsForUserRow struct {
 }
 
 func (q *Queries) GetPostsForUser(ctx context.Context, arg GetPostsForUserParams) ([]GetPostsForUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPostsForUser, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getPostsForUser,
+		arg.Limit,
+		arg.Offset,
+		arg.SortBy,
+		arg.SortOrder,
+	)
 	if err != nil {
 		return nil, err
 	}
