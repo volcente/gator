@@ -13,8 +13,8 @@ import (
 const (
 	defaultPage   = 1
 	defaultLimit  = 2
-	defaultOrder  = "asc"
-	defaultSortBy = "title"
+	defaultOrder  = "desc"
+	defaultSortBy = "publishedAt"
 )
 
 type pagination struct {
@@ -38,9 +38,13 @@ func handlerBrowsePosts(s *state, cmd command) error {
 		return err
 	}
 
+	fmt.Println(pagination, sorting)
+
 	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
-		Limit:  int32(pagination.limit),
-		Offset: int32(pagination.getOffset()),
+		Limit:     int32(pagination.limit),
+		Offset:    int32(pagination.getOffset()),
+		SortBy:    sorting.sortBy,
+		SortOrder: sorting.order,
 	})
 	if err != nil {
 		return fmt.Errorf("could not get posts: %w", err)
@@ -90,7 +94,7 @@ func validateUserInput(cmd command, pagination *pagination, sorting *sorting) er
 		}
 	}
 
-	acceptedSortByFields := []string{"title", "url", "publishedAt"}
+	acceptedSortByFields := []string{"title", "url", "published_at"}
 	if rawSortBy, exists := subArgsMap[sortByFlag]; exists {
 		if !slices.Contains(acceptedSortByFields, rawSortBy) {
 			return fmt.Errorf("invalid sortBy: %s. accepted sortBy fields: %s", rawSortBy, strings.Join(acceptedSortByFields, "|"))
