@@ -32,7 +32,7 @@ A command-line RSS feed aggregator that helps you follow and aggregate RSS feeds
 - `follow <feed_url>` - Follow an existing feed
 - `unfollow <feed_url>` - Unfollow a feed
 - `following` - List feeds you're following
-- `browse [limit]` - Browse posts (optional: specify number of posts, default: 2)
+- `browse [options]` - Browse posts with pagination and sorting options
 - `agg <duration>` - Start feed aggregation with specified interval
 
 ## Example Usage
@@ -79,8 +79,14 @@ gator following
 # Start aggregator (runs every minute)
 gator agg 1m
 
-# Browse latest 5 posts
-gator browse 5
+# Browse posts with pagination and sorting
+gator browse --page 1 --limit 5 --sort-by title --sort-order asc
+
+# Available browse options:
+# --page <number>      : Page number (default: 1)
+# --limit <number>     : Posts per page (default: 2)
+# --sort-by <field>    : Sort by field (title|url|published_at) (default: published_at)
+# --sort-order <order> : Sort order (asc|desc) (default: desc)
 ```
 
 ### 5. Advanced Operations
